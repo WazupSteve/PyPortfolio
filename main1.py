@@ -33,12 +33,10 @@ def plot_histogram(data, bins=50):
     """Plot histogram."""
     data.hist(bins=bins)
 
-def optimize_portfolio(prices, mu, cov_matrix, weight_bounds=(None, None), sector_mapper=None, 
-                       sector_lower=None, sector_upper=None, objective_function=None, gamma=None, 
-                       target_volatility=None, target_return=None, market_neutral=False):
-    """Optimize portfolio with various objectives and constraints."""
+def optimize_portfolio(prices, mu, cov_matrix, weight_bounds=(None, None), sector_mapper=None, sector_lower=None, sector_upper=None, objective_function=None, gamma=None, target_volatility=None, target_return=None, market_neutral=False):
+    """Optimize portfolio."""
     ef = EfficientFrontier(mu, cov_matrix, weight_bounds=weight_bounds)
-
+    
     if sector_mapper:
         ef.add_sector_constraints(sector_mapper, sector_lower, sector_upper)
 
@@ -47,27 +45,19 @@ def optimize_portfolio(prices, mu, cov_matrix, weight_bounds=(None, None), secto
     elif objective_function == "min_volatility":
         ef.min_volatility()
     elif objective_function == "efficient_risk":
-            min_volatility = min(np.sqrt(np.diag(cov_matrix)))
-            if target_volatility < min_volatility:
-                return "Error: Target volatility is lower than the minimum achievable volatility.", None
-            ef.efficient_risk(target_volatility)
+        ef.efficient_risk(target_volatility=target_volatility)
     elif objective_function == "efficient_return":
-        ef.efficient_return(target_return, market_neutral)
+        ef.efficient_return(target_return=target_return, market_neutral=market_neutral)
 
-    # Create a new instance for L2 regularization
     if gamma:
-        ef_l2 = EfficientFrontier(mu, cov_matrix, weight_bounds=weight_bounds)  # New instance
-        if sector_mapper:
-            ef_l2.add_sector_constraints(sector_mapper, sector_lower, sector_upper)
-        ef_l2.add_objective(objective_functions.L2_reg, gamma=gamma)
-        ef_l2.max_sharpe()  # Or use the appropriate objective
-        weights = ef_l2.clean_weights()
-    else:
-        weights = ef.clean_weights()
+        ef.add_objective(objective_functions.L2_reg, gamma=gamma)
 
-    performance = ef.portfolio_performance(verbose=True)  # Use original ef for performance
-
+    weights = ef.clean_weights()
+    performance = ef.portfolio_performance(verbose=True)
     return weights, performance
+
+
+import pandas as pd
 
 def allocate_portfolio(weights, latest_prices, total_portfolio_value, short_ratio=0.3):
     # Get the intersection of tickers between weights and latest_prices
@@ -123,16 +113,20 @@ def perform_cla_optimization(mu, cov_matrix):
     return cla.portfolio_performance(verbose=True) 
 
 def perform_constraint_optimization(mu, cov_matrix, tickers, big_tech_indices, max_big_tech_weight=0.3):
-    """Perform portfolio optimization with a constraint on big tech weight."""
+    """Perform portfolio optimization with constraints."""
+    # Create an instance of EfficientFrontier and optimize for maximum Sharpe ratio
+    ef_sharpe = EfficientFrontier(mu, cov_matrix)
+    ef_sharpe.max_sharpe()
+
+    # Create a new instance of EfficientFrontier with the original mu and cov_matrix
     ef = EfficientFrontier(mu, cov_matrix)
-    
-    def big_tech_constraint(w):
-        return cp.sum([w[idx] for idx in big_tech_indices]) <= max_big_tech_weight
+
+    # Create a lambda function for the constraint
+    big_tech_constraint = lambda w: cp.sum([w[idx] for idx in big_tech_indices]) <= max_big_tech_weight
 
     ef.add_constraint(big_tech_constraint)
-    ef.max_sharpe()  # Optimize with the constraint
-    ef.clean_weights()
-
+    ef.max_sharpe()  # Optimize the portfolio with the added constraint
+    ef.clean_weights()  # Update the weights with the added constraint
     return ef
 
 def _ef_default_returns_range(ef, n_samples=10000):
@@ -144,29 +138,24 @@ def _ef_default_returns_range(ef, n_samples=10000):
     return np.linspace(min(mus), max(mus), n_samples), mus
 
 def plot_efficient_frontier_with_random_portfolios(ef, ax=None, n_samples=10000, show_assets=True):
-    """Plot the efficient frontier with random portfolios."""
     if ax is None:
         ax = plt.gca()
 
-    # Generate random portfolios
-    w = np.random.dirichlet(np.ones(len(ef.expected_returns)), n_samples)
-    rets = w.dot(ef.expected_returns)
-    stds = np.sqrt(np.diag(w @ ef.cov_matrix @ w.T))
-    sharpes = rets / stds
+    # Ensure these are methods and not overwritten
+    ef_param_range = _ef_default_returns_range(ef, n_samples)
 
-    # Plot efficient frontier
-    ef_x = np.linspace(0, max(stds), 200)
-    ef_y = []
-    for risk_level in ef_x:
-        ef.efficient_risk(risk_level)
-        ef_y.append(ef.portfolio_performance()[0])  # Extract expected return
-    ax.plot(ef_x, ef_y, label="Efficient Frontier")
-
-    # Plot random portfolios
-    ax.scatter(stds, rets, marker=".", c=sharpes, cmap="viridis_r")
+    # Correctly calling methods with parentheses
+    ax.plot(ef_param_range[0], ef_param_range[1], label="Efficient Frontier")
 
     if show_assets:
-        ax.scatter(np.sqrt(np.diag(ef.cov_matrix)), ef.expected_returns, s=30, color="k", label="Assets")
+        # Ensure these are methods and not overwritten
+        ax.scatter(
+            np.sqrt(np.diag(ef.cov_matrix)),  # Correctly accessing cov_matrix
+            ef.expected_returns,  # Correctly accessing expected_returns
+            s=30,
+            color="k",
+            label="Assets",
+        )
 
     ax.set_title("Efficient Frontier with random portfolios")
     ax.legend()
