@@ -2,6 +2,6 @@ gradio
 yfinance
 matplotlib
 numpy
-pypfopt
+PyPortfolioOpt
 cvxpy
 pandas
