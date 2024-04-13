@@ -11,7 +11,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import yfinance as yf
 
 # Alpha Vantage API configuration
-API_KEY = 'RDUK3972554RKZ0K'  # Replace with your Alpha Vantage API key
+API_KEY = 'YOUR_API_KEY'  # Replace with your Alpha Vantage API key
 BASE_URL = 'https://www.alphavantage.co/query'
 
 
