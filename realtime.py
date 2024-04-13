@@ -10,11 +10,6 @@ import requests
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import yfinance as yf
 
-# Alpha Vantage API configuration
-API_KEY = 'YOUR_API_KEY'  # Replace with your Alpha Vantage API key
-BASE_URL = 'https://www.alphavantage.co/query'
-
-
 # Step 1: Define Questionnaire
 questionnaire_options = {
     'Investment Horizon': {
