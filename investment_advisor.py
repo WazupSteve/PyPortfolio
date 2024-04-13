@@ -53,6 +53,7 @@ questionnaire_options = {
     }
 }
 
+
 def get_user_questionnaire() -> Dict[str, int]:
     responses = {}
     for question, options in questionnaire_options.items():
@@ -67,6 +68,8 @@ def get_user_questionnaire() -> Dict[str, int]:
     return responses
 
 # Step 2: Compute Risk Score
+
+
 def compute_risk_score(responses):
     score = 0
     for question, value in responses.items():
@@ -79,24 +82,30 @@ def compute_risk_score(responses):
     return score
 
 # Step 3: Fetch Historical Returns Data
+
+
 def get_historical_returns(tickers, start_date, end_date):
     historical_returns = {}
     for ticker in tickers:
         try:
             data = yf.download(ticker, start=start_date, end=end_date)
-            historical_returns[ticker] = data['Adj Close'].pct_change().dropna()
+            historical_returns[ticker] = data['Adj Close'].pct_change(
+            ).dropna()
         except (yf.DownloadError, ValueError) as e:
             print(f"Error downloading data for {ticker}: {e}")
             historical_returns[ticker] = pd.DataFrame()
     historical_returns_df = pd.DataFrame(historical_returns)
     return historical_returns_df
 
+
 def prepare_data(responses, historical_returns_df):
     # Create a DataFrame from the single response dictionary
     responses_df = pd.DataFrame([responses])
 
-    categorical_features = ['Investment Horizon', 'Risk Attitude', 'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
-    X = pd.DataFrame(responses_df[categorical_features].values, columns=categorical_features)
+    categorical_features = ['Investment Horizon', 'Risk Attitude',
+                            'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
+    X = pd.DataFrame(
+        responses_df[categorical_features].values, columns=categorical_features)
 
     encoder = OrdinalEncoder()
     X = encoder.fit_transform(X)
@@ -106,29 +115,39 @@ def prepare_data(responses, historical_returns_df):
     # Since there's only one row of input features, repeat it to match the number of rows in y
     X = np.repeat(X.reshape(1, -1), y.shape[0], axis=0)
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test, encoder
 
 # Step 5: Model Training
+
+
 def train_model(X_train, y_train):
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
     return model
 
 # Step 6: Evaluation
+
+
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     print("Mean Squared Error:", mse)
 
 # Step 7: Investment Ratio Suggestion
+
+
 def suggest_investment_ratio(responses, model, encoder):
-    categorical_features = ['Investment Horizon', 'Risk Attitude', 'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
-    X = np.array([responses[feature] for feature in categorical_features]).reshape(1, -1)
+    categorical_features = ['Investment Horizon', 'Risk Attitude',
+                            'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
+    X = np.array([responses[feature]
+                 for feature in categorical_features]).reshape(1, -1)
     X = encoder.transform(X)
     predicted_ratios = model.predict(X)
     ratios = predicted_ratios.flatten()
     return ratios / ratios.sum()
+
 
 def generate_simulated_dataset(num_samples):
     responses = []
@@ -145,14 +164,18 @@ def generate_simulated_dataset(num_samples):
         }
         responses.append(response)
 
-        ratio = np.random.dirichlet(np.ones(5))  # Generate random investment ratios for 5 assets
+        # Generate random investment ratios for 5 assets
+        ratio = np.random.dirichlet(np.ones(5))
         ratios.append(ratio)
 
     return pd.DataFrame(responses), pd.DataFrame(ratios)
 
 # Update the prepare_data function
+
+
 def prepare_data(responses_df, ratios_df):
-    categorical_features = ['Investment Horizon', 'Risk Attitude', 'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
+    categorical_features = ['Investment Horizon', 'Risk Attitude',
+                            'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
     X = responses_df[categorical_features]
 
     encoder = OrdinalEncoder()
@@ -160,10 +183,13 @@ def prepare_data(responses_df, ratios_df):
 
     y = ratios_df.values
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test, encoder
 
 # Updated the main function
+
+
 def main():
     # Generate a simulated dataset with 1000 samples
     responses_df, ratios_df = generate_simulated_dataset(1000)
@@ -175,10 +201,12 @@ def main():
     tickers = ['AAPL', 'GOOGL', 'MSFT', 'BND', 'HYG']
     start_date = datetime(2022, 1, 1)
     end_date = datetime.today() - timedelta(days=1)
-    historical_returns_df = get_historical_returns(tickers, start_date, end_date)
+    historical_returns_df = get_historical_returns(
+        tickers, start_date, end_date)
 
     # Prepare Data for Training (using the simulated dataset)
-    X_train, X_test, y_train, y_test, encoder = prepare_data(responses_df, ratios_df)
+    X_train, X_test, y_train, y_test, encoder = prepare_data(
+        responses_df, ratios_df)
 
     # Train Model
     model = train_model(X_train, y_train)
@@ -191,6 +219,7 @@ def main():
     print("\nSuggested investment ratio:")
     for ticker, ratio_value in zip(tickers, ratio):
         print(f"{ticker}: {ratio_value:.2f}")
+
 
 if __name__ == "__main__":
     main()

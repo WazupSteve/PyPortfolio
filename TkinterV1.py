@@ -53,6 +53,8 @@ questionnaire_options = {
 }
 
 # Step 2: Compute Risk Score
+
+
 def compute_risk_score(responses):
     score = 0
     for question, value in responses.items():
@@ -64,34 +66,45 @@ def compute_risk_score(responses):
             score += value
     return score
 
+
 def prepare_data(responses_df, ratios_df):
-    categorical_features = ['Investment Horizon', 'Risk Attitude', 'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
+    categorical_features = ['Investment Horizon', 'Risk Attitude',
+                            'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
     X = responses_df[categorical_features]
     encoder = OrdinalEncoder()
     X = encoder.fit_transform(X)
     y = ratios_df.values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42)
     return X_train, X_test, y_train, y_test, encoder
 
 # Step 5: Model Training
+
+
 def train_model(X_train, y_train):
     model = RandomForestRegressor(n_estimators=100, random_state=42)
     model.fit(X_train, y_train)
     return model
 
 # Step 6: Evaluation
+
+
 def evaluate_model(model, X_test, y_test):
     y_pred = model.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     print("Mean Squared Error:", mse)
 
+
 def suggest_investment_ratio(responses, model, encoder):
-    categorical_features = ['Investment Horizon', 'Risk Attitude', 'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
-    X = np.array([responses[feature] for feature in categorical_features]).reshape(1, -1)
+    categorical_features = ['Investment Horizon', 'Risk Attitude',
+                            'Financial Knowledge', 'Investment Experience', 'Age', 'Income Level']
+    X = np.array([responses[feature]
+                 for feature in categorical_features]).reshape(1, -1)
     X = encoder.transform(X)
     predicted_ratios = model.predict(X)
     ratios = predicted_ratios.flatten()
     return ratios / ratios.sum()
+
 
 def generate_simulated_dataset(num_samples):
     responses = []
@@ -106,9 +119,11 @@ def generate_simulated_dataset(num_samples):
             'Income Level': np.random.randint(1, 7),
         }
         responses.append(response)
-        ratio = np.random.dirichlet(np.ones(3))  # Generate random investment ratios for 3 categories (debt, equity, hybrid)
+        # Generate random investment ratios for 3 categories (debt, equity, hybrid)
+        ratio = np.random.dirichlet(np.ones(3))
         ratios.append(ratio)
     return pd.DataFrame(responses), pd.DataFrame(ratios, columns=['Debt', 'Equity', 'Hybrid'])
+
 
 def update_expected_returns():
     investment_amount = float(investment_amount_entry.get())
@@ -123,10 +138,12 @@ def update_expected_returns():
         debt_scale.set(debt_ratio * 100)
         equity_scale.set(equity_ratio * 100)
         hybrid_scale.set(hybrid_ratio * 100)
-    expected_returns = investment_amount * np.array([debt_ratio, equity_ratio, hybrid_ratio])
+    expected_returns = investment_amount * \
+        np.array([debt_ratio, equity_ratio, hybrid_ratio])
     debt_returns_label.config(text=f"Debt: {expected_returns[0]:.2f}")
     equity_returns_label.config(text=f"Equity: {expected_returns[1]:.2f}")
     hybrid_returns_label.config(text=f"Hybrid: {expected_returns[2]:.2f}")
+
 
 def submit_questionnaire():
     user_responses = {}
@@ -136,19 +153,24 @@ def submit_questionnaire():
     risk_score_label.config(text=f"Your Risk Score: {risk_score}")
     update_results(user_responses)
 
+
 def update_results(user_responses):
-    filtered_responses_df = responses_df[responses_df.apply(compute_risk_score, axis=1) == compute_risk_score(user_responses)]
+    filtered_responses_df = responses_df[responses_df.apply(
+        compute_risk_score, axis=1) == compute_risk_score(user_responses)]
     filtered_ratios_df = ratios_df.iloc[filtered_responses_df.index]
     if not filtered_responses_df.empty:
-        X_train, X_test, y_train, y_test, encoder = prepare_data(filtered_responses_df, filtered_ratios_df)
+        X_train, X_test, y_train, y_test, encoder = prepare_data(
+            filtered_responses_df, filtered_ratios_df)
         model = train_model(X_train, y_train)
-        suggested_ratios = suggest_investment_ratio(user_responses, model, encoder)
+        suggested_ratios = suggest_investment_ratio(
+            user_responses, model, encoder)
     else:
         suggested_ratios = ratios_df.mean().values
     debt_scale.set(suggested_ratios[0] * 100)
     equity_scale.set(suggested_ratios[1] * 100)
     hybrid_scale.set(suggested_ratios[2] * 100)
     update_expected_returns()
+
 
 def main():
     global debt_scale, equity_scale, hybrid_scale, investment_amount_entry, debt_returns_label, equity_returns_label, hybrid_returns_label
@@ -176,12 +198,14 @@ def main():
         selected_option = tk.StringVar(value=list(options.values())[0])
         selected_options[question] = selected_option
         for key, value in options.items():
-            radio_button = ttk.Radiobutton(questionnaire_frame, text=key, value=value, variable=selected_option)
+            radio_button = ttk.Radiobutton(
+                questionnaire_frame, text=key, value=value, variable=selected_option)
             radio_button.grid(row=row, column=1, padx=5, pady=2, sticky="w")
             row += 1
         row += 1
 
-    submit_button = ttk.Button(questionnaire_frame, text="Submit", command=submit_questionnaire)
+    submit_button = ttk.Button(
+        questionnaire_frame, text="Submit", command=submit_questionnaire)
     submit_button.grid(row=row, columnspan=2, padx=5, pady=10)
 
     risk_score_label = ttk.Label(questionnaire_frame, text="Your Risk Score: ")
@@ -195,21 +219,25 @@ def main():
     # Create labels and scroll bars for investment ratios
     debt_label = ttk.Label(results_frame, text="Debt Ratio:")
     debt_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-    debt_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
+    debt_scale = tk.Scale(results_frame, from_=0, to=100,
+                          orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
     debt_scale.grid(row=0, column=1, padx=5, pady=5)
 
     equity_label = ttk.Label(results_frame, text="Equity Ratio:")
     equity_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-    equity_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
+    equity_scale = tk.Scale(results_frame, from_=0, to=100,
+                            orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
     equity_scale.grid(row=1, column=1, padx=5, pady=5)
 
     hybrid_label = ttk.Label(results_frame, text="Hybrid Ratio:")
     hybrid_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-    hybrid_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
+    hybrid_scale = tk.Scale(results_frame, from_=0, to=100,
+                            orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
     hybrid_scale.grid(row=2, column=1, padx=5, pady=5)
 
     # Create and pack the investment amount frame
-    investment_amount_label = ttk.Label(results_frame, text="Investment Amount:")
+    investment_amount_label = ttk.Label(
+        results_frame, text="Investment Amount:")
     investment_amount_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
     investment_amount_entry = ttk.Entry(results_frame)
     investment_amount_entry.grid(row=3, column=1, padx=5, pady=5)
@@ -228,6 +256,7 @@ def main():
 
     # Run the main event loop
     window.mainloop()
+
 
 if __name__ == "__main__":
     main()

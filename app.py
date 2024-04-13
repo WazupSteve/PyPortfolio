@@ -1,17 +1,7 @@
 import gradio as gr
-import pandas as pd
-import yfinance as yf
 import matplotlib.pyplot as plt
-import numpy as np
-from pypfopt import risk_models, expected_returns
-from pypfopt.efficient_frontier import EfficientFrontier
-from pypfopt.discrete_allocation import DiscreteAllocation
-from pypfopt.cla import CLA
-import cvxpy as cp
 from main1 import *
-import ast
-
-# --- Gradio Interface ---
+import json
 
 
 def gradio_interface(
@@ -32,24 +22,20 @@ def gradio_interface(
     target_cvar: float,
     max_big_tech_weight: float,
 ):
-    # --- Input Validation and Processing ---
     tickers = [t.strip()
-               for t in tickers.upper().split(",")]  # Remove spaces
+               for t in tickers.upper().split(",")]
     weight_bounds = tuple(float(w) if w.strip().lower(
     ) != "none" else None for w in weight_bounds_str.split(","))
-    sector_mapper = ast.literal_eval(sector_mapper_str)
-    sector_lower = ast.literal_eval(sector_lower_str)
-    sector_upper = ast.literal_eval(sector_upper_str)
+    sector_mapper = json.loads(sector_mapper_str)
+    sector_lower = json.loads(sector_lower_str)
+    sector_upper = json.loads(sector_upper_str)
 
-    # Fetch historical prices
     prices = fetch_historical_prices(tickers, period=period)
 
-    # Calculate expected returns and covariance matrix
     mu = calculate_expected_returns(prices)
     cov_matrix = calculate_sample_covariance(prices, frequency=frequency)
 
-    # Portfolio optimization
-    weights, performance = optimize_portfolio(prices, mu, cov_matrix,
+    weights, performance = optimize_portfolio(mu, cov_matrix,
                                               weight_bounds=weight_bounds,
                                               sector_mapper=sector_mapper,
                                               sector_lower=sector_lower,
@@ -61,32 +47,26 @@ def gradio_interface(
                                               market_neutral=market_neutral
                                               )
 
-    # Discrete allocation
     latest_prices = prices.iloc[-1]
     alloc = allocate_portfolio(
         weights, latest_prices, total_portfolio_value=total_portfolio_value, short_ratio=short_ratio)
 
-    # Sector allocation
     sector_allocation = str(map_sectors_to_tickers(
         tickers, sector_mapper, weights))
 
-    # For compute_cvar
     if prices is None or mu is None:
         cvar_performance = (
             "Unable to compute CVaR: prices or expected returns are missing", None)
     else:
-        returns = expected_returns.returns_from_prices(prices).dropna()
         cvar_performance = compute_cvar(
-            prices, mu, returns, target_cvar=target_cvar)
+            prices, mu, target_cvar=target_cvar)
 
-    # For perform_cla_optimization
     if mu is None or cov_matrix is None:
         cla_performance = (
             "Unable to perform CLA optimization: expected returns or covariance matrix is missing", None)
     else:
         cla_performance = perform_cla_optimization(mu, cov_matrix)
 
-    # Constraint optimization
     big_tech_indices = [tickers.index(ticker)
                         for ticker in {"MSFT", "AMZN", "TSLA"}]
     if not tickers or not big_tech_indices:
@@ -94,28 +74,24 @@ def gradio_interface(
             "Unable to perform constraint optimization: tickers or big tech indices are missing", None)
     else:
         constraint_performance = perform_constraint_optimization(
-            mu, cov_matrix, tickers, big_tech_indices, max_big_tech_weight=max_big_tech_weight)
+            mu, cov_matrix, big_tech_indices, max_big_tech_weight=max_big_tech_weight)
 
-    # Efficient Frontier plot
     if constraint_performance is None:
         efficient_frontier_plot = None
     else:
         fig, ax = plt.subplots()
         plot_efficient_frontier_with_random_portfolios(
             constraint_performance, ax=ax)
-        efficient_frontier_plot = fig  # Access the plot
+        efficient_frontier_plot = fig
 
-    # Formatting output
     performance_text = str(performance[0])
     cvar_performance_text = str(cvar_performance[0])
     cla_performance_text = str(cla_performance[0])
     constraint_performance_text = str(
         constraint_performance.portfolio_performance(verbose=True)[0])
     return performance_text, alloc.to_dict(), sector_allocation, cvar_performance_text, cla_performance_text, constraint_performance_text, efficient_frontier_plot
-    return tuple(value for value in [performance_text, alloc.to_frame(), sector_allocation, cvar_performance_text, cla_performance_text, constraint_performance_text, efficient_frontier_plot])
 
 
-# --- Gradio Interface Definition ---
 iface = gr.Interface(
     fn=gradio_interface,
     inputs=[
