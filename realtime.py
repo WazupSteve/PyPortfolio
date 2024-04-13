@@ -8,11 +8,7 @@ import tkinter as tk
 from tkinter import ttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import yfinance as yf
-
-# Alpha Vantage API configuration
-API_KEY = 'RDUK3972554RKZ0K'  # Replace with your Alpha Vantage API key
-BASE_URL = 'https://www.alphavantage.co/query'
-
+from ttkbootstrap import Style
 
 # Step 1: Define Questionnaire
 questionnaire_options = {
@@ -203,10 +199,11 @@ def main():
     global debt_scale, equity_scale, hybrid_scale, investment_amount_entry, debt_returns_label, equity_returns_label, hybrid_returns_label
     global responses_df, ratios_df, selected_options, risk_score_label
 
-    # Create the main window with better initial size
-    window = tk.Tk()
+    # Set the theme and create the main window
+    style = Style(theme="cosmo")
+    window = style.master
     window.title("Investment Suggestion System")
-    window.geometry("800x600")  # Adjust dimensions as needed
+    window.attributes("-fullscreen", True)  # Make the window full-screen
 
     # Use Notebook for organized sections
     notebook = ttk.Notebook(window)
@@ -217,79 +214,73 @@ def main():
     selected_options = {}
     row = 0
     for question, options in questionnaire_options.items():
-        question_label = ttk.Label(questionnaire_frame, text=question)
-        question_label.grid(row=row, column=0, padx=5, pady=5, sticky="w")
+        question_label = ttk.Label(questionnaire_frame, text=question, font=("Helvetica", 12))
+        question_label.grid(row=row, column=0, padx=10, pady=10, sticky="w")
         selected_option = tk.StringVar(value=list(options.values())[0])
         selected_options[question] = selected_option
         for key, value in options.items():
-            radio_button = ttk.Radiobutton(
-                questionnaire_frame, text=key, value=value, variable=selected_option)
-            radio_button.grid(row=row, column=1, padx=5, pady=2, sticky="w")
+            radio_button = ttk.Radiobutton(questionnaire_frame, text=key, value=value, variable=selected_option)
+            radio_button.grid(row=row, column=1, padx=10, pady=5, sticky="w")
             row += 1
         row += 1
-    submit_button = ttk.Button(
-        questionnaire_frame, text="Submit", command=submit_questionnaire)
-    submit_button.grid(row=row, columnspan=2, padx=5, pady=10)
-    risk_score_label = ttk.Label(questionnaire_frame, text="Your Risk Score: ")
-    risk_score_label.grid(row=row+1, columnspan=2, padx=5, pady=10)
+    submit_button = ttk.Button(questionnaire_frame, text="Submit", command=submit_questionnaire, style="success.TButton")
+    submit_button.grid(row=row, columnspan=2, padx=10, pady=15)
+    risk_score_label = ttk.Label(questionnaire_frame, text="Your Risk Score: ", font=("Helvetica", 12, "bold"))
+    risk_score_label.grid(row=row+1, columnspan=2, padx=10, pady=15)
     notebook.add(questionnaire_frame, text="Questionnaire")
 
     # Results Tab
     results_frame = ttk.Frame(notebook)
     # Create labels and scroll bars for investment ratios
-    debt_label = ttk.Label(results_frame, text="Debt Ratio:")
-    debt_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-    debt_scale = tk.Scale(results_frame, from_=0, to=100,
-                          orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
-    debt_scale.grid(row=0, column=1, padx=5, pady=5)
-    equity_label = ttk.Label(results_frame, text="Equity Ratio:")
-    equity_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-    equity_scale = tk.Scale(results_frame, from_=0, to=100,
-                            orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
-    equity_scale.grid(row=1, column=1, padx=5, pady=5)
-    hybrid_label = ttk.Label(results_frame, text="Hybrid Ratio:")
-    hybrid_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
-    hybrid_scale = tk.Scale(results_frame, from_=0, to=100,
-                            orient=tk.HORIZONTAL, command=lambda _: update_expected_returns())
-    hybrid_scale.grid(row=2, column=1, padx=5, pady=5)
+    debt_label = ttk.Label(results_frame, text="Debt Ratio:", font=("Helvetica", 12))
+    debt_label.grid(row=0, column=0, padx=10, pady=10, sticky="w")
+    debt_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, length=300, command=lambda _: update_expected_returns())
+    debt_scale.grid(row=0, column=1, padx=10, pady=10)
+    equity_label = ttk.Label(results_frame, text="Equity Ratio:", font=("Helvetica", 12))
+    equity_label.grid(row=1, column=0, padx=10, pady=10, sticky="w")
+    equity_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, length=300, command=lambda _: update_expected_returns())
+    equity_scale.grid(row=1, column=1, padx=10, pady=10)
+    hybrid_label = ttk.Label(results_frame, text="Hybrid Ratio:", font=("Helvetica", 12))
+    hybrid_label.grid(row=2, column=0, padx=10, pady=10, sticky="w")
+    hybrid_scale = tk.Scale(results_frame, from_=0, to=100, orient=tk.HORIZONTAL, length=300, command=lambda _: update_expected_returns())
+    hybrid_scale.grid(row=2, column=1, padx=10, pady=10)
+
     # Create and pack the investment amount frame
-    investment_amount_label = ttk.Label(
-        results_frame, text="Investment Amount:")
-    investment_amount_label.grid(row=3, column=0, padx=5, pady=5, sticky="w")
-    investment_amount_entry = ttk.Entry(results_frame)
-    investment_amount_entry.grid(row=3, column=1, padx=5, pady=5)
+    investment_amount_label = ttk.Label(results_frame, text="Investment Amount:", font=("Helvetica", 12))
+    investment_amount_label.grid(row=3, column=0, padx=10, pady=10, sticky="w")
+    investment_amount_entry = ttk.Entry(results_frame, font=("Helvetica", 12))
+    investment_amount_entry.grid(row=3, column=1, padx=10, pady=10)
+
     # Create and pack the expected returns frame
-    expected_returns_label = ttk.Label(results_frame, text="Expected Returns:")
-    expected_returns_label.grid(row=4, column=0, padx=5, pady=5, sticky="w")
-    debt_returns_label = ttk.Label(results_frame, text="Debt: 0.00")
-    debt_returns_label.grid(row=5, column=0, padx=5, pady=2, sticky="w")
-    equity_returns_label = ttk.Label(results_frame, text="Equity: 0.00")
-    equity_returns_label.grid(row=6, column=0, padx=5, pady=2, sticky="w")
-    hybrid_returns_label = ttk.Label(results_frame, text="Hybrid: 0.00")
-    hybrid_returns_label.grid(row=7, column=0, padx=5, pady=2, sticky="w")
+    expected_returns_label = ttk.Label(results_frame, text="Expected Returns:", font=("Helvetica", 12, "bold"))
+    expected_returns_label.grid(row=4, column=0, padx=10, pady=10, sticky="w")
+    debt_returns_label = ttk.Label(results_frame, text="Debt: 0.00", font=("Helvetica", 12))
+    debt_returns_label.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+    equity_returns_label = ttk.Label(results_frame, text="Equity: 0.00", font=("Helvetica", 12))
+    equity_returns_label.grid(row=6, column=0, padx=10, pady=5, sticky="w")
+    hybrid_returns_label = ttk.Label(results_frame, text="Hybrid: 0.00", font=("Helvetica", 12))
+    hybrid_returns_label.grid(row=7, column=0, padx=10, pady=5, sticky="w")
     notebook.add(results_frame, text="Results & Adjustments")
 
     # Stock Data Tab
     stock_frame = ttk.Frame(notebook)
     # Create an entry field for stock ticker names
-    stock_label = ttk.Label(
-        stock_frame, text="Enter stock ticker names (comma-separated):")
-    stock_label.pack(pady=5)
-    stock_entry = ttk.Entry(stock_frame)
-    stock_entry.pack(pady=5)
+    stock_label = ttk.Label(stock_frame, text="Enter stock ticker names (comma-separated):", font=("Helvetica", 12))
+    stock_label.pack(pady=10)
+    stock_entry = ttk.Entry(stock_frame, font=("Helvetica", 12))
+    stock_entry.pack(pady=10)
     # Create entry fields for start and end dates
-    start_date_label = ttk.Label(stock_frame, text="Start Date (YYYY-MM-DD):")
-    start_date_label.pack(pady=5)
-    start_date_entry = ttk.Entry(stock_frame)
-    start_date_entry.pack(pady=5)
-    end_date_label = ttk.Label(stock_frame, text="End Date (YYYY-MM-DD):")
-    end_date_label.pack(pady=5)
-    end_date_entry = ttk.Entry(stock_frame)
-    end_date_entry.pack(pady=5)
+    start_date_label = ttk.Label(stock_frame, text="Start Date (YYYY-MM-DD):", font=("Helvetica", 12))
+    start_date_label.pack(pady=10)
+    start_date_entry = ttk.Entry(stock_frame, font=("Helvetica", 12))
+    start_date_entry.pack(pady=10)
+    end_date_label = ttk.Label(stock_frame, text="End Date (YYYY-MM-DD):", font=("Helvetica", 12))
+    end_date_label.pack(pady=10)
+    end_date_entry = ttk.Entry(stock_frame, font=("Helvetica", 12))
+    end_date_entry.pack(pady=10)
     # Create a button to fetch and plot stock data
-    fetch_button = ttk.Button(stock_frame, text="Fetch Stock Data", command=lambda: fetch_and_plot_stock_data(
-        stock_entry, start_date_entry, end_date_entry, stock_frame))
-    fetch_button.pack(pady=5)
+    fetch_button = ttk.Button(stock_frame, text="Fetch Stock Data", command=lambda: fetch_and_plot_stock_data(stock_entry, start_date_entry, end_date_entry, stock_frame), style="info.TButton")
+    fetch_button.pack(pady=15)
     notebook.add(stock_frame, text="Stock Data")
 
     # Run the main event loop
