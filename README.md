@@ -49,7 +49,7 @@ Portfolio optimization is a crucial aspect of investment management, aiming to c
     git clone https://github.com/WazupSteve/PyPortfolio.git
     ```
 
-2. Navigate to the project directory:
+2. Navigate to the project directory
 
 3. Install dependencies:
 
