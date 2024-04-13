@@ -1,0 +1,7 @@
+gradio
+yfinance
+matplotlib
+numpy
+pypfopt
+cvxpy
+pandas
